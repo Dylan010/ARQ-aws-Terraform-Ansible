@@ -7,13 +7,30 @@ terraform {
   }
 }
 
-# Configure the AWS Provider
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-1"  # Ajusta la región según tus preferencias
   access_key = ""
   secret_key = ""
 }
 
+# Genera un nuevo par de claves
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+# Crea un key pair de AWS usando la clave pública generada
+resource "aws_key_pair" "generated_key" {
+  key_name   = "terraform-key"
+  public_key = tls_private_key.example.public_key_openssh
+}
+
+# Guarda la clave privada en un archivo local
+resource "local_file" "private_key" {
+  content  = tls_private_key.example.private_key_pem
+  filename = "${path.module}/terraform-key.pem"
+  file_permission = "0400"
+}
 
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -32,16 +49,35 @@ data "aws_ami" "ubuntu" {
 }
 
 
-resource "aws_security_group" "allow_ssh" {
-  name        = "allow_ssh"
-  description = "Allow SSH inbound traffic"
+
+resource "aws_instance" "ubuntu_free_tier" {
+  ami           = data.aws_ami.ubuntu.id 
+  instance_type = "t2.micro"  # Tipo de instancia elegible para Free Tier
+  key_name      = aws_key_pair.generated_key.key_name
+
+  tags = {
+    Name = "Ubuntu-Free-Tier"
+  }
+
+  vpc_security_group_ids = [aws_security_group.allow_ssh_http.id]
+}
+
+resource "aws_security_group" "allow_ssh_http" {
+  name        = "allow_ssh_http"
+  description = "Permite trafico SSH y HTTP entrante"
 
   ingress {
-    description = "SSH from anywhere"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] 
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -50,24 +86,13 @@ resource "aws_security_group" "allow_ssh" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "allow_ssh"
-  }
-}
-
-
-resource "aws_instance" "Desafio_11" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
-  key_name = "bootcamp"
-  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
-
-  tags = {
-    Name = "test-server"
-  }
 }
 
 output "public_ip" {
-  value       = aws_instance.Desafio_11.public_ip
+  value = aws_instance.ubuntu_free_tier.public_ip
+}
+
+output "private_key" {
+  value     = tls_private_key.example.private_key_pem
+  sensitive = true
 }

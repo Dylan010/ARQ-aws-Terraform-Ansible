@@ -1,0 +1,31 @@
+---
+- name: Instalar y configurar servidor web
+  hosts: ec2_instance
+  become: yes
+  tasks:
+    - name: Actualizar todos los paquetes
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Instalar Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Iniciar servicio Nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Crear página HTML personalizada
+      copy:
+        content: |
+          <html>
+            <body>
+              <h1>Bienvenido al servidor web del Desafío 11</h1>
+              <p>Esta página fue creada con Ansible.</p>
+            </body>
+          </html>
+        dest: /var/www/html/index.html

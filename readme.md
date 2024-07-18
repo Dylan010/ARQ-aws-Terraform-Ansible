@@ -2,8 +2,8 @@ Desafio 11 de Bootcamp Devops
 
 
 1. Preparación en tu PC:
-   - Crea una carpeta llamada "Proyecto" en el mismo directorio donde está tu Vagrantfile.
-   - Coloca los archivos main.tf, inventory.yaml y playbook.yaml en esta carpeta "Proyecto".
+   - Crea una carpeta llamada "compartido" en el mismo directorio donde está tu Vagrantfile.
+   - Coloca los archivos main.tf, inventory.yaml y playbook.yaml en esta carpeta "compartido".
 
 2. Iniciar y acceder a la VM:
    ```
